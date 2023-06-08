@@ -9,11 +9,11 @@ nx = 64
 ny = 64
 dx = 1.0
 dy = 1.0
-nstep = 4000
+nstep = 20000
 nprint = 100
 dtime = 0.01
 coefA = 1.0
-c0 = 0.4
+c0 = 0.1
 mobility = 1.0
 grad_coef = 0.5
 rand_size = 0.2
@@ -21,7 +21,7 @@ seed = 123
 
 η = 2.0
 ttime = 0.0
-w =  2.5
+w =  3.0
 
 c = thermocalc.make_initial_concentration(c0, nx, ny, seed, rand_size)
 c = array_operation.reject_element(c, (0.001, 0.999))
@@ -30,16 +30,11 @@ c = array_operation.reject_element(c, (0.001, 0.999))
 istep = 1
 for istep in 1:nstep
   ttime = ttime + dtime
-  c[:,1] = c[:,end]
-  c[1,:] = c[end,:]
 
-  gg = c .* (1.0 .- c)
-  # sg = vcat(gg[2:nx,:], gg[1,:])
-  # dg = sg - gg
+  g = c .* (1.0 .- c)
 
-  gk = fft(gg)
+  gk = fft(g)
   ck = fft(c)
-  g = ifft(gk)
 
   ∂ₓc_k = ck .* kx .* im
   ∂ₓc = ifft(∂ₓc_k)
@@ -70,17 +65,13 @@ for istep in 1:nstep
 
   term2 = fft(∂ₓg .* ∂ₓΔηc + ∂yg .* ∂yΔηc + g .* ΔΔηc)
 
+  # semi implicit (not work)
   # ck = ck + dtime * (term1 - term2) ./ (1.0 .+ dtime * k2) 
-  ck = ck + dtime * (term1 - term2 + Δc_k) 
 
-  ck = ck + dtime * (term1 + Δc_k) 
-
-  # OK; ck = ck + dtime * Δc_k
-
-  # istep == 10 && break
+  # implict (work)
+  ck = ck + dtime * (Δc_k + term1 - term2)
 
   c = real(ifft(ck))
-
   c = array_operation.reject_element(c, (0.001, 0.999))
 
   if (istep % nprint == 0) || istep == 1
