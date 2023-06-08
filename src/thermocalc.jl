@@ -25,6 +25,7 @@ end
 
 export make_initial_concentration_from_iparam
 function make_initial_concentration_from_iparam(iparam:: Param.InitialParameter)::AbstractArray
+  println("hey")
   nx = iparam.nxny[1]
   ny = iparam.nxny[2]
   # set initial consentration
@@ -34,6 +35,7 @@ end
 
 export make_initial_fft_param
 function make_initial_fft_param(iparam:: Param.InitialParameter)::Param.FFTParameter
+  println("hey2")
   nx = iparam.nxny[1]
   ny = iparam.nxny[2]
   dx = iparam.dxdy[1]

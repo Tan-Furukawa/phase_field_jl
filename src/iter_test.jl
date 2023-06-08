@@ -6,7 +6,6 @@
 # #   nothing
 # # else
 # #   (state[1] + 1, "hey")
-# :a
 # # end
 
 # Base.iterate(::Fibo, state=(0, 1)) =

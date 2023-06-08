@@ -6,13 +6,16 @@ include("fft.jl")
 include("type.jl")
 include("array_operation.jl")
 include("thermocalc.jl")
-include("ch_fft_itr_tmp.jl")
+include("ch_fft_channel.jl")
+
+# @time begin
+  
 
 # nx = 64
 # ny = 64
 # dx = 1.0
 # dy = 1.0
-# nstep = 20000
+# nstep = 2
 # nprint = 100
 # dtime = 0.01
 # coefA = 1.0
@@ -30,6 +33,7 @@ include("ch_fft_itr_tmp.jl")
 # (kx, ky, k2, k4, k2_anyso) = Myfft.prepare_fft(nx, ny, dx, dy, η)
 
 # for istep in 1:nstep
+#   @time begin
 #   ttime = ttime + dtime
 #   dfdc = thermocalc.get_free_energy(c)
 #   dfdck = fft(dfdc)
@@ -48,6 +52,7 @@ include("ch_fft_itr_tmp.jl")
 #     save("result/png/res_$istep.png", img)
 #   end
 # end
+# end
 
 
-# # end
+# # # end
