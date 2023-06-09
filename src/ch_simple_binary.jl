@@ -75,16 +75,19 @@ end
 iparam = Param.InitialParameter(nstep = 20000, η = 1.0, noise_per_step = 0.00 , mobility = 1.0)
 itr = ch_simple_binary_alloy(iparam)
 # itr = SimpleBinaryAlloy.ch_simple_binary_alloy(iparam)
-
-
 using Colors, Plots
+using Dates
+
+
+anim = Animation()
 @time begin
 for (i, k) in itr
     if (i % iparam.nprint == 0) || i == 1
         j = k.index
         c = k.c
         println("step: $(j) done")
-        img = Gray.(c')
+        plt = plot(Gray.(c'))
+        frame(anim, plt)
         # save("result/png/res_$(j).png", img)
     end
     if k.is_last_object
@@ -92,32 +95,14 @@ for (i, k) in itr
     end
 end
 end
+date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
+gif(anim, "result/gif/$(date_str).gif", fps = 30)
 
 
-using PyPlot
-(_, res) = take!(itr)
+# (_, res) = take!(itr)
 
-(nx, ny) = iparam.nxny
+# (nx, ny) = iparam.nxny
 
-# x = 1:nx
-# y = 1:ny
-# pcolormesh(res.c, cmap="prism")
-# colorbar()
-
-# using PyPlot
-
-# prs = [1 2 3;4 5 6;7 8 9]
-
-# prsview = zeros(size(prs))
-# for k = 1:size(prs,1)
-#     prsview[k,:] = prs[size(prs,1)-k+1,:]
-# end
-
-# pcolormesh(prsview,cmap="Blues")
-# colorbar()
-# savefig("Matrix.png")
-
-# plot((res.c))
 
 # using Plots
 # plot(1:iparam.nstep, res.free_energy)
