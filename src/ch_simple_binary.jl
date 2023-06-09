@@ -1,14 +1,14 @@
-include("fft.jl")
-include("type.jl")
-include("array_operation.jl")
-include("thermocalc.jl")
+# include("fft.jl")
+# include("type.jl")
+# include("array_operation.jl")
+# include("thermocalc.jl")
 
-# module SimpleBinaryAlloy
+module SimpleBinaryAlloy
 
 using FFTW
 using ..Param
-using ..thermocalc
-using ..array_operation
+using ..Thermocalc
+using ..ArrayOperation
 using ..Myfft
 
 export ch_simple_binary_alloy
@@ -23,8 +23,8 @@ function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Uni
       _, phase_filed_res = pre_result
       phase_filed_res
     else
-      c = thermocalc.make_initial_concentration(iparam.c0, nx, ny, iparam.seed, iparam.initial_noise_size)
-      c = array_operation.reject_element!(c, (0.001, 0.999))
+      c = Thermocalc.make_initial_concentration(iparam.c0, nx, ny, iparam.seed, iparam.initial_noise_size)
+      c = ArrayOperation.reject_element!(c, (0.001, 0.999))
       Param.PhaseFiledResult(1, c, 0.0, false, Array{Float64}(undef, nstep))
     end
 
@@ -46,7 +46,7 @@ function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Uni
       # istep == 1 && put!(channel, res)
 
       ttime = ttime + dt
-      dfdc = thermocalc.get_free_energy(c)
+      dfdc = Thermocalc.get_free_energy(c)
       dfdck = fft(dfdc)
     
       ck = fft(c)
@@ -55,57 +55,58 @@ function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Uni
       denom = 1.0 .+ dt * coefA * mobility * grad_coef .* k2 .* k2_anyso
       ck = (ck - number) ./ denom
       c = real(ifft(ck))
-      thermocalc.make_random_noise!(c, nx, ny, istep, iparam.noise_per_step)
-      array_operation.reject_element!(c, (0.001, 0.999))
+      c = Thermocalc.normalize_to_bulk!(c, iparam.c0)
+      Thermocalc.make_random_noise!(c, nx, ny, istep, iparam.noise_per_step)
+      ArrayOperation.reject_element!(c, (0.001, 0.999))
       res.c = c
       res.index = res.index + 1
       res.ttime = res.ttime
-      res.free_energy[istep] = thermocalc.calculate_free_energy(nx, ny, c, grad_coef)
+      res.free_energy[istep] = Thermocalc.calculate_free_energy(nx, ny, c, grad_coef)
       put!(channel, (istep + 1, res))
     end
   end
 end
+end
+
+
+# function normalize_c(c)
+#   return 0.3 .* c + 0.7 .* (1.0 .- c)
 # end
 
-
-function normalize_c(c)
-  return 0.3 .* c + 0.7 .* (1.0 .- c)
-end
-
-iparam = Param.InitialParameter(nstep = 20000, η = 1.0, noise_per_step = 0.00 , mobility = 1.0)
-itr = ch_simple_binary_alloy(iparam)
-# itr = SimpleBinaryAlloy.ch_simple_binary_alloy(iparam)
-using Colors, Plots
-using Dates
+# iparam = Param.InitialParameter(nstep = 20000, η = 1.0, noise_per_step = 0.00 , mobility = 10)
+# itr = ch_simple_binary_alloy(iparam)
+# # itr = SimpleBinaryAlloy.ch_simple_binary_alloy(iparam)
+# using Colors, Plots
+# using Dates
 
 
-anim = Animation()
-@time begin
-for (i, k) in itr
-    if (i % iparam.nprint == 0) || i == 1
-        j = k.index
-        c = k.c
-        println("step: $(j) done")
-        plt = plot(Gray.(c'))
-        frame(anim, plt)
-        # save("result/png/res_$(j).png", img)
-    end
-    if k.is_last_object
-      break
-    end
-end
-end
-date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
-gif(anim, "result/gif/$(date_str).gif", fps = 30)
+# anim = Animation()
+# @time begin
+# for (i, k) in itr
+#     if (i % iparam.nprint == 0) || i == 1
+#         j = k.index
+#         c = k.c
+#         println("step: $(j) done")
+#         plt = plot(Gray.(c'))
+#         frame(anim, plt)
+#         # save("result/png/res_$(j).png", img)
+#     end
+#     if k.is_last_object
+#       break
+#     end
+# end
+# end
 
+# date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
+# gif(anim, "result/gif/$(date_str).gif", fps = 30)
 
 # (_, res) = take!(itr)
+# plot(1:iparam.nstep, res.free_energy)
 
 # (nx, ny) = iparam.nxny
 
 
 # using Plots
-# plot(1:iparam.nstep, res.free_energy)
 
 # iparam = Param.InitialParameter(nstep = 10000, η = 2, noise_per_step = 0.02, mobility = 1)
 # sum(res.c)/ length(res.c)

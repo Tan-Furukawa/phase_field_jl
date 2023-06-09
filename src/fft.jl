@@ -1,8 +1,12 @@
+# include("type.jl")
+
 module Myfft
+
+using ..Param
 using FFTW
 
 export prepare_fft
-function prepare_fft(nx, ny, dx, dy, η)
+function prepare_fft(nx, ny, dx, dy, η)::Param.FFTParameter
   nx21 = Int(floor(nx / 2) + 1)
   ny21 = Int(floor(ny / 2) + 1)
   nx2 = Int(nx + 2)
@@ -34,9 +38,12 @@ function prepare_fft(nx, ny, dx, dy, η)
   end
 
   k4 = k2 .^ 2
-
-  return (kx_mat, ky_mat, k2, k4, k2_anyso)
+  res = Param.FFTParameter(kx_mat, ky_mat, k2, k4, k2_anyso)
+  return res
 end
 
 # (kx, ky, k2, k4, a) = prepare_fft(4, 4, 1, 1, 2)
 end
+
+# x = [1 2 3; 4 5 6]
+# res = Param.FFTParameter(x, x, x, x, x)

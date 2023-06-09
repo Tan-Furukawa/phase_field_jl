@@ -1,4 +1,4 @@
-module array_operation
+module ArrayOperation
 
 export reject_element!
 function reject_element!(arr::AbstractArray, tpl::Tuple)
