@@ -12,7 +12,8 @@ Base.@kwdef struct InitialParameter
   nprint:: Integer = 100
   c0:: AbstractFloat = 0.4
   η:: AbstractFloat = 2.0
-  grad_coef:: AbstractFloat = 0.5
+  noise_per_step:: AbstractFloat = 0.0
+  grad_coef:: AbstractFloat = 0.3
   dtime:: AbstractFloat = 0.01
   coefA:: AbstractFloat = 1.0
   mobility:: AbstractFloat = 1.0
@@ -28,5 +29,15 @@ struct FFTParameter
   k4::Matrix{AbstractFloat}
   k_anysotropy:: Matrix{AbstractFloat}
 end
+
+export PhaseFiledResult
+mutable struct PhaseFiledResult
+  index:: Integer
+  c:: Matrix{Float64}
+  ttime:: Float64
+  is_last_object:: Bool
+  free_energy:: Array{Float64}
+end
+
 
 end
