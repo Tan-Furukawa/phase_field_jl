@@ -1,4 +1,5 @@
 module NonLinearBinary
+
 using Plots, Colors
 using Dates
 using FFTW
@@ -7,11 +8,20 @@ using ..Param
 using ..ArrayOperation
 using ..Thermocalc
 using ..Myfft
-# include("fft.jl")
-# include("array_operation.jl")
-# include("Thermocalc.jl")
-# include("type.jl")
-# iparam = Param.InitialParameter()
+
+export calculate_free_energy
+function calculate_free_energy(c, η, w)
+  # ∑∑f(cᵢⱼ) + 1/2 * ∑∑(η f(cᵢ₊₁ⱼ) - f(cᵢⱼ))² +  (f(cᵢⱼ₊₁) - f(cᵢⱼ))²)
+  d = 0.001
+  return sum(
+    c .* log.(max.(c, d)) + (1.0 .- c) .* log.(max.(1.0 .- c, d)) 
+   + w * c .* (1.0 .- c)
+  ) + 1 / 2 * (
+    sum((c[:, 2:end] - c[:, 1:end-1]).^2) * η + 
+    sum((c[2:end, :] - c[1:end-1, :]).^2)
+  )
+end
+
 
 export calculate_next_step_consentration!
 function calculate_next_step_consentration!(c::Matrix{Float64}, fft_param::Param.FFTParameter, iparam::Param.InitialParameter)
@@ -61,7 +71,7 @@ function calculate_next_step_consentration!(c::Matrix{Float64}, fft_param::Param
   # semi implicit (not work)
   # ck = ck + dt * (term1 - term2) ./ (1.0 .+ dt * k2) 
 
-  # implict (work)
+  # explict (work)
   ck = ck + dt * (Δc_k + term1 - term2)
 
   c = real(ifft(ck))
@@ -115,69 +125,11 @@ function ch_nonlinear_binary_alloy(iparam:: Param.InitialParameter, pre_result::
       res.c = c
       res.index = res.index + 1
       res.ttime = res.ttime
+      res.free_energy[istep] = log(calculate_free_energy(c, η, w))
       put!(channel, (istep + 1, res))
+    end
 
-      # if (istep % nprint == 0) || istep == 1
-      #   println("step: $istep done")
-      #   img = Gray.(c')
-      #   save("result/png/res_$istep.png", img)
-      # end
   end
 end
 
 end
-end
-
-# if abspath(PROGRAM_FILE) == @__FILE__
-#   using .NonLinearBinary
-#   print("hello")
-# end
-
-# print(abspath(PROGRAM_FILE))
-
-
-iparam = Main.Param.InitialParameter(nstep = 10000, η = 1.0, noise_per_step = 0.00, dtime = 0.01)
-itr = Main.NonLinearBinary.ch_nonlinear_binary_alloy(iparam)
-# take!(itr)
-
-using Plots, Colors
-using Dates
-anim = Animation()
-@time begin
-for (i, k) in itr
-    if (i % iparam.nprint == 0) || i == 1
-        j = k.index
-        c = k.c
-        println("step: $(j) done")
-        img = Gray.(c')
-        plt = plot(img)
-        frame(anim, plt)
-        save("result/png/res_$(j).png", img)
-    end
-    if k.is_last_object
-      break
-    end
-end
-end
-
-date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
-gif(anim, "result/gif/$(date_str).gif", fps = 1000)
-
-
-# c = Thermocalc.make_initial_concentration(c0, nx, ny, seed, rand_size)
-# c = ArrayOperation.reject_element(c, (0.001, 0.999))
-# (kx, ky, k2, k4, k2_anyso) = Myfft.prepare_fft(nx, ny, dx, dy, η)
-
-# function ts()
-#   return Channel{String}(0) do channel
-#     i = 0
-#     while true
-#       xxxx()
-#       i = i + 1
-#       put!(channel, "this is $(i)")
-#     end
-#   end
-# end
-
-# itr = ts()
-# take!(itr)

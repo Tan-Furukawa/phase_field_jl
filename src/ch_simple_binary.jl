@@ -11,15 +11,41 @@ using ..Thermocalc
 using ..ArrayOperation
 using ..Myfft
 
+
+export calculate_next_step_consentration!
+function calculate_next_step_consentration!(c::Matrix{Float64}, fft_param::Param.FFTParameter, iparam::Param.InitialParameter)
+  k2 = fft_param.k2
+  k2_anyso = fft_param.k_anysotropy
+  dfdc = Thermocalc.get_free_energy(c)
+  dfdck = fft(dfdc)
+  ck = fft(c)
+  dt = iparam.dtime
+  mobility = iparam.mobility
+  coefA = iparam.coefA
+  grad_coef = iparam.grad_coef
+  (nx, ny) = iparam.nxny
+
+  number = dt * mobility * k2.* dfdck
+  denom = 1.0 .+ dt * coefA * mobility * grad_coef .* k2 .* k2_anyso
+  ck = (ck - number) ./ denom
+  c = real(ifft(ck))
+  c = Thermocalc.normalize_to_bulk!(c, iparam.c0)
+  Thermocalc.make_random_noise!(c, nx, ny, 123, iparam.noise_per_step)
+  ArrayOperation.reject_element!(c, (0.001, 0.999))
+
+  return c
+end
+
 export ch_simple_binary_alloy
 function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Union{Tuple{Integer, Param.PhaseFiledResult}, Nothing} = nothing)
   return Channel{Tuple{Integer, Param.PhaseFiledResult}}(0) do channel
     nx, ny = iparam.nxny
     dx, dy = iparam.dxdy
     nstep = iparam.nstep
+    η = iparam.η
 
     res = if (pre_result !== nothing) 
-      put!(channel, (1, pre_result))
+      put!(channel, pre_result)
       _, phase_filed_res = pre_result
       phase_filed_res
     else
@@ -30,13 +56,14 @@ function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Uni
 
     c = res.c
 
-    (kx, ky, k2, k4, k2_anyso) = Myfft.prepare_fft(nx, ny, dx, dy, iparam.η)
+    fft_params = Myfft.prepare_fft(nx, ny, dx, dy, η)
+    # (kx, ky, k2, k4, k2_anyso) = Myfft.prepare_fft(nx, ny, dx, dy, η)
     ttime = res.ttime
     dt= iparam.dtime
-    mobility = iparam.mobility
-    coefA = iparam.coefA; grad_coef = iparam.grad_coef
+    grad_coef = iparam.grad_coef
 
     for istep in 1:nstep
+      c = res.c
 
       if nstep == istep 
         res.is_last_object = true
@@ -46,18 +73,10 @@ function ch_simple_binary_alloy(iparam:: Param.InitialParameter, pre_result::Uni
       # istep == 1 && put!(channel, res)
 
       ttime = ttime + dt
-      dfdc = Thermocalc.get_free_energy(c)
-      dfdck = fft(dfdc)
-    
-      ck = fft(c)
-    
-      number = dt * mobility * k2.* dfdck
-      denom = 1.0 .+ dt * coefA * mobility * grad_coef .* k2 .* k2_anyso
-      ck = (ck - number) ./ denom
-      c = real(ifft(ck))
-      c = Thermocalc.normalize_to_bulk!(c, iparam.c0)
-      Thermocalc.make_random_noise!(c, nx, ny, istep, iparam.noise_per_step)
-      ArrayOperation.reject_element!(c, (0.001, 0.999))
+
+      c = Thermocalc.make_random_noise!(c, nx, ny, 1234, iparam.noise_per_step)
+      c = calculate_next_step_consentration!(c, fft_params, iparam)
+
       res.c = c
       res.index = res.index + 1
       res.ttime = res.ttime
@@ -100,8 +119,6 @@ end
 # date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
 # gif(anim, "result/gif/$(date_str).gif", fps = 30)
 
-# (_, res) = take!(itr)
-# plot(1:iparam.nstep, res.free_energy)
 
 # (nx, ny) = iparam.nxny
 
