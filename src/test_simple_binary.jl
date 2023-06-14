@@ -1,12 +1,12 @@
 
-iparam = Main.Param.InitialParameter(nstep = 40000, η = 1.0, noise_per_step = 0.01 , mobility = 20, nxny=(128, 128))
+iparam = Main.Param.InitialParameter(nstep = 20000, η = 4, noise_per_step = 0.01 , mobility = 20, nxny=(64, 64))
 itr = Main.SimpleBinaryAlloy.ch_simple_binary_alloy(iparam)
 # itr = SimpleBinaryAlloy.ch_simple_binary_alloy(iparam)
 using Colors, Plots
 using Dates
 
 function normalize_c(c)
-  return 0.3 .* c + 0.7 .* (1.0 .- c)
+  return 0.2 .* c + 0.8 .* (1.0 .- c)
 end
 
 anim = Animation()
@@ -30,7 +30,7 @@ end
 date_str = Dates.format(now(), "yyyy-mm-dd-HH-MM-SS-SSS")
 gif(anim, "result/gif/$(date_str).gif", fps = 10)
 
-iparam = Main.Param.InitialParameter(nstep = 2000, η = 1.0, noise_per_step = 0.01 , mobility=0.1, nxny=(128, 128))
+iparam = Main.Param.InitialParameter(nstep = 2000, η = 3, noise_per_step = 0.01 , mobility=0.1, nxny=(64, 64))
 
 res = take!(itr)
 res[2].c = normalize_c(res[2].c)

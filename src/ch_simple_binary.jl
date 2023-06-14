@@ -1,8 +1,3 @@
-# include("fft.jl")
-# include("type.jl")
-# include("array_operation.jl")
-# include("thermocalc.jl")
-
 module SimpleBinaryAlloy
 
 using FFTW
